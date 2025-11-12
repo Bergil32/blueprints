@@ -102,19 +102,21 @@ action:
         value_template: "{{ changed }}"
     then:
       - variables:
+          today_iso: "{{ now().date().isoformat() }}"
+          tomorrow_iso: "{{ (now() + timedelta(days=1)).date().isoformat() }}"
+
           events_today: >-
             {% set ns = namespace(events=[]) %}
+            {% set today_iso = now().date().isoformat() %}
             {% set cutoff = now() - timedelta(minutes=30) %}
             {% for e in raw_events %}
-              {% if as_datetime(e.end) >= cutoff %}
+              {% if today_iso in e.start and as_datetime(e.end) >= cutoff %}
                 {% set ns.events = ns.events + [e] %}
               {% endif %}
             {% endfor %}
             {{ ns.events }}
 
-          events_tomorrow: >-
-            {% set tomorrow = (now() + timedelta(days=1)).date() %}
-            {{ raw_events | selectattr('start', 'search', tomorrow.isoformat()) | list }}
+          events_tomorrow: "{{ raw_events | selectattr('start', 'search', tomorrow_iso) | list }}"
 
           body: >-
             📍 {{ location_name }}
