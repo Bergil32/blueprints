@@ -107,16 +107,27 @@ action:
 
           events_today: >-
             {% set ns = namespace(events=[]) %}
-            {% set today_iso = now().date().isoformat() %}
             {% set cutoff = now() - timedelta(minutes=30) %}
+            {% set today = now().date() %}
             {% for e in raw_events %}
-              {% if today_iso in e.start and as_datetime(e.end) >= cutoff %}
+              {% set start_local = as_datetime(e.start).astimezone(now().tzinfo) %}
+              {% set end_local = as_datetime(e.end).astimezone(now().tzinfo) %}
+              {% if start_local.date() == today and end_local >= cutoff %}
                 {% set ns.events = ns.events + [e] %}
               {% endif %}
             {% endfor %}
             {{ ns.events }}
 
-          events_tomorrow: "{{ raw_events | selectattr('start', 'search', tomorrow_iso) | list }}"
+          events_tomorrow: >-
+            {% set ns = namespace(events=[]) %}
+            {% set tomorrow = (now() + timedelta(days=1)).date() %}
+            {% for e in raw_events %}
+              {% set start_local = as_datetime(e.start).astimezone(now().tzinfo) %}
+              {% if start_local.date() == tomorrow %}
+                {% set ns.events = ns.events + [e] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.events }}
 
           body: >-
             📍 {{ location_name }}
