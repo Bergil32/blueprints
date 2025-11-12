@@ -51,7 +51,7 @@ variables:
   region_queue: >-
     {% set parts = cal_entity.split('_') %}
     {% if parts | length >= 4 %}
-      {{ parts[1] | title }} {{ parts[2] | title }}, черга {{ parts[3:] | join('.') }}
+      {{ parts[1] | replace('-', ' ') | title }} {{ parts[2] | replace('-', ' ') | title }}, черга {{ parts[3:] | join('.') }}
     {% else %}
       {{ cal_entity.split('.')[1] | replace('_', ' ') | title }}
     {% endif %}
@@ -88,15 +88,15 @@ action:
       schedule_signature: >-
         {% set ns = namespace(sig='') %}
         {% for e in raw_events %}
-          {% set ns.sig = ns.sig ~ e.start[9:15] ~ e.end[9:15] ~ '|' %}
+          {% set ns.sig = ns.sig ~ e.start[9:15] ~ e.end[9:15] %}
         {% endfor %}
-        {{ ns.sig | regex_replace('[T:]', '') }}
+        {{ (ns.sig | regex_replace('[^0-9]', '')) ~ '_' }}
 
       # Попередній hash
       old_signature: "{{ states(storage_helper) | default('') }}"
 
       # Чи змінилося?
-      changed: "{{ schedule_signature != old_signature }}"
+      changed: "{{ schedule_signature [-255:] != old_signature }}"
 
   - if:
       - condition: template
@@ -161,4 +161,4 @@ action:
     target:
       entity_id: !input storage_helper
     data:
-      value: "{{ schedule_signature }}"
+      value: "{{ schedule_signature [-255:]}}"
