@@ -33,9 +33,15 @@ blueprint:
       selector:
         text:
 
+    location_name:
+      name: Локація
+      default: "Дім"
+      selector:
+        text:
+
     storage_helper:
       name: Helper для збереження
-      description: "Виберіть Text helper для збереження стану цього календаря"
+      description: "Виберіть Text helper для збереження стану календаря"
       selector:
         entity:
           domain: input_text
@@ -47,14 +53,7 @@ variables:
   mobile_targets: !input mobile_targets
   title_text: !input title_text
   storage_helper: !input storage_helper
-  # Витягуємо назву регіону та черги з entity_id календаря
-  region_queue: >-
-    {% set parts = cal_entity.split('_') %}
-    {% if parts | length >= 4 %}
-      {{ parts[1] | replace('-', ' ') | title }} {{ parts[2] | replace('-', ' ') | title }}, черга {{ parts[3:] | join('.') }}
-    {% else %}
-      {{ cal_entity.split('.')[1] | replace('_', ' ') | title }}
-    {% endif %}
+  location_name: !input location_name
 
 trigger:
   - platform: state
@@ -104,15 +103,21 @@ action:
     then:
       - variables:
           events_today: >-
-            {% set today = now().date() %}
-            {{ raw_events | selectattr('start', 'search', today.isoformat()) | list }}
+            {% set ns = namespace(events=[]) %}
+            {% set cutoff = now() - timedelta(minutes=30) %}
+            {% for e in raw_events %}
+              {% if as_datetime(e.end) >= cutoff %}
+                {% set ns.events = ns.events + [e] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.events }}
 
           events_tomorrow: >-
             {% set tomorrow = (now() + timedelta(days=1)).date() %}
             {{ raw_events | selectattr('start', 'search', tomorrow.isoformat()) | list }}
 
           body: >-
-            📍 {{ region_queue }}
+            📍 {{ location_name }}
             
             {% if events_today | length > 0 -%}
             📅 СЬОГОДНІ ({{ now().strftime('%d.%m.%Y') }})
