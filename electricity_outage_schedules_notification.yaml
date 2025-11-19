@@ -171,7 +171,7 @@ action:
                         message: "{{ body }}"
                         data:
                           priority: high
-                          tag: svitlo_changed
+                          tag: "svitlo_{{ this.entity_id | regex_replace('[^a-zA-Z0-9_]', '_') }}"
                           notification_icon: "mdi:calendar-alert"
 
   # Зберігаємо hash
